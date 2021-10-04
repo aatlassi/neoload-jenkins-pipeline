@@ -1,7 +1,7 @@
 pipeline {
   agent none
   environment {
-    NLW_TOKEN = credentials('NLW_TOKEN_DPS4')
+    NLW_TOKEN = credentials('NLW_TOKEN_FROM_SAAS')
   }
   options {
     disableConcurrentBuilds()
@@ -28,7 +28,7 @@ pipeline {
       steps {
         git(branch: "main", url: 'https://github.com/aatlassi/neoload-as-code-demo.git')
         unstash 'LG'
-        sh script: "NeoLoad -project '$WORKSPACE/default.yaml' -testResultName 'Petstore API (build ${BUILD_NUMBER})' -description 'Testing Load as Code' -launch 'Petstore API' -loadGenerators '$WORKSPACE/neoload/load-generators/lg.yaml' -nlweb -nlwebAPIURL http://dockerps4.neotys.com:8081 -nlwebToken ${NLW_TOKEN} -leaseServer nlweb -leaseLicense 10:1"
+        sh script: "NeoLoad -project '$WORKSPACE/default.yaml' -testResultName 'Petstore API (build ${BUILD_NUMBER})' -description 'Testing Load as Code' -launch 'Petstore API' -loadGenerators '$WORKSPACE/neoload/load-generators/lg.yaml' -nlweb -nlwebAPIURL https://neoload.saas.neotys.com/:8081 -nlwebToken ${NLW_TOKEN} -leaseServer nlweb -leaseLicense 10:1"
       }
     }
   }
