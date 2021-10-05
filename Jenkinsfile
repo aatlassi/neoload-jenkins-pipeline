@@ -28,7 +28,7 @@ pipeline {
       steps {
         git(branch: "main", url: 'https://github.com/aatlassi/neoload-as-code-demo.git')
         unstash 'LG'
-        sh script: "NeoLoad -project '$WORKSPACE/default.yaml' -testResultName 'Petstore API (build ${BUILD_NUMBER})' -description 'Testing Load as Code' -launch 'Petstore API' -loadGenerators '$WORKSPACE/neoload/load-generators/lg.yaml' -nlweb -nlwebAPIURL https://neoload-api.saas.neotys.com/explore/ -nlwebToken ${NLW_TOKEN} -leaseServer nlweb -leaseLicense 50:1"
+        sh script: "NeoLoad -project '$WORKSPACE/default.yaml' -testResultName 'Petstore API (build ${BUILD_NUMBER})' -description 'Testing Load as Code' -launch 'Petstore API' -loadGenerators '$WORKSPACE/neoload/load-generators/lg.yaml' -nlweb -nlwebAPIURL https://neoload-api.saas.neotys.com -nlwebToken ${NLW_TOKEN} -leaseServer nlweb -leaseLicense 50:1"
       }
     }
   }
