@@ -4,5 +4,5 @@ infrastructures:
     zones:
     - name: Docker
       machines:
-      - nl-lg1
-      - nl-lg2
+      - docker-lg1
+      - docker-lg2
