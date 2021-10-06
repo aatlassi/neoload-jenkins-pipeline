@@ -66,8 +66,3 @@ ADD ./entrypoint.sh ./controller-entrypoint.sh ./controller-agent-entrypoint.sh 
 USER neoload
 
 ENTRYPOINT ["/bin/sh", "/home/neoload/entrypoint.sh"]
-© 2021 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
