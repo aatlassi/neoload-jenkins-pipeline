@@ -1,29 +1,68 @@
-FROM neotys/neoload-controller:7.6
+FROM neotys/alpine-glibc:3.10 as builder
 
-ARG user=neoload
-ENV HOME /home/${user}
 
-ARG JENKINS_VERSION=3.26
-ARG JENKINS_WORKDIR=/home/${user}/agent
+ENV NL_VERSION=7.6
+ARG URL=https://www.neotys.com/redirect/redirect.php?product=neoload&target=direct-download&os=linux&version=${NL_VERSION}&format=tar.gz
 
-USER root
-RUN ln -s /home/neoload/neoload/bin/NeoLoadCmd /usr/bin/NeoLoad
-RUN apk add --update --no-cache curl bash git openssh-client openssl procps \
-  && curl --create-dirs -sSLo /usr/share/jenkins/slave.jar https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${JENKINS_VERSION}/remoting-${JENKINS_VERSION}.jar \
-  && chmod 755 /usr/share/jenkins \
-  && chmod 644 /usr/share/jenkins/slave.jar \
-  && apk del curl
+#The group has same right that the owner for openshift. This is by chmod because installer force the mod (umask is useless).
+RUN mkdir /neoload/ \
+    && wget ${URL} -O - |  tar -xz --strip-components=1 -C /neoload/ \
+    && rm -rf /neoload/doc \
+           /neoload/jre/*src.zip \
+           /neoload/jre/lib/missioncontrol \
+           /neoload/jre/lib/visualvm \
+           /neoload/jre/plugin \
+           /neoload/jre/bin/javaws \
+           /neoload/jre/bin/jjs \
+           /neoload/jre/bin/orbd \
+           /neoload/jre/bin/pack200 \
+           /neoload/jre/bin/policytool \
+           /neoload/jre/bin/rmid \
+           /neoload/jre/bin/rmiregistry \
+           /neoload/jre/bin/servertool \
+           /neoload/jre/bin/tnameserv \
+           /neoload/jre/bin/unpack200 \
+           /neoload/jre/lib/javaws.jar \
+           /neoload/jre/lib/deploy* \
+           /neoload/jre/lib/desktop \
+           /neoload/jre/lib/amd64/libdecora_sse.so \
+           /neoload/jre/lib/amd64/libprism_*.so \
+           /neoload/jre/lib/amd64/libfxplugins.so \
+           /neoload/jre/lib/amd64/libglass.so \
+           /neoload/jre/lib/amd64/libgstreamer-lite.so \
+           /neoload/jre/lib/oblique-fonts \
+           /neoload/jre/lib/plugin.jar \
+           /tmp/* /var/cache/apk/* \
+    && sed -i 's/wan.emulation.plugin=ipfw/wan.emulation.plugin=none/g' /neoload/conf/agent.properties \
+    && chmod -R g=u /neoload
 
-USER ${user}
-ENV AGENT_WORKDIR=${JENKINS_WORKDIR}
-RUN mkdir /home/${user}/.jenkins && mkdir -p ${AGENT_WORKDIR}
+FROM neotys/alpine-glibc:3.10
 
-VOLUME /home/${user}/.jenkins
-VOLUME ${AGENT_WORKDIR}
-WORKDIR /home/${user}
+LABEL neoload.product.kind=Controller \
+      neoload.product.version=7.6.0 \
+      neoload.product.build=20200928-41 \
+      neoload.project.version=8.1
 
-ENV CONTROLLER_XMX=-Xmx512m
 
-EXPOSE 7100
+ENV LOG_ALSO_TO_CONSOLE=true
 
-ENTRYPOINT []
+RUN set -ex \
+    && addgroup -S neoload \
+    && adduser -S -G neoload neoload \
+    && chmod g+w /etc/passwd \
+    && chgrp 0 /home/neoload \
+    && chmod g=rwx /home/neoload \
+    && apk --no-cache add ttf-dejavu
+
+
+#Alpine put suid bit on home directory. So the right inherit from parent directory. We prefer to use the GID of process for new files.
+#We need to accept that entrypoin.sh changes the /etc/passwd.
+
+#The group is root for openshift.
+COPY --chown=neoload:0 --from=builder /neoload /home/neoload/neoload
+
+ADD ./entrypoint.sh ./controller-entrypoint.sh ./controller-agent-entrypoint.sh /home/neoload/
+
+USER neoload
+
+ENTRYPOINT ["/bin/sh", "/home/neoload/entrypoint.sh"]
